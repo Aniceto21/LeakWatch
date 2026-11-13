@@ -1,0 +1,10 @@
+{
+  "name": "LeakWatch Goa – Every Drop Matters. Every Leak Counts.",
+  "description": "Official citizen reporting and management platform for water leakage complaints across Goa, India.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

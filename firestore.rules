@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Role verification: check Firestore users collection role or verified project owner email
+    function isAdmin() {
+      return isSignedIn() && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        (request.auth.token.email != null && request.auth.token.email.lower() == 'anicetocunha21@gmail.com')
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'role', 'createdAt', 'uid', 'updatedAt']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+        data.email is string && data.email.size() <= 150 &&
+        (data.role == 'citizen' || data.role == 'admin') &&
+        (!('uid' in data) || (data.uid is string && data.uid.size() <= 128));
+    }
+
+    function isValidStatus(s) {
+      return s == 'Submitted' ||
+        s == 'Pending' ||
+        s == 'Under Review' ||
+        s == 'Assigned' ||
+        s == 'In Progress' ||
+        s == 'Resolved' ||
+        s == 'Rejected';
+    }
+
+    function isValidSeverity(sev) {
+      return sev == 'Low' || sev == 'Medium' || sev == 'High' || sev == 'Critical';
+    }
+
+    function isValidComplaint(data) {
+      return data.complaintId is string &&
+        data.complaintId.size() <= 30 &&
+        data.complaintId.matches('^LW-GOA-[0-9]{4}-[A-Z0-9]{6}$') &&
+        (!('reportId' in data) || (data.reportId is string && data.reportId == data.complaintId)) &&
+        // Supports 'name', 'fullName', and 'citizenName'
+        (('name' in data && data.name is string && data.name.size() >= 2 && data.name.size() <= 100) ||
+         ('fullName' in data && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100)) &&
+        data.contactNumber is string &&
+        data.contactNumber.size() >= 4 &&
+        data.contactNumber.size() <= 25 &&
+        // Supports 'location', 'leakageLocation', and 'landmark'
+        (('location' in data && data.location is string && data.location.size() >= 3 && data.location.size() <= 300) ||
+         ('leakageLocation' in data && data.leakageLocation is string && data.leakageLocation.size() >= 3 && data.leakageLocation.size() <= 300) ||
+         ('landmark' in data && data.landmark is string && data.landmark.size() >= 3 && data.landmark.size() <= 300)) &&
+        (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 150)) &&
+        (!('personalAddress' in data) || data.personalAddress == null || (data.personalAddress is string && data.personalAddress.size() <= 300)) &&
+        (!('landmark' in data) || data.landmark == null || (data.landmark is string && data.landmark.size() <= 300)) &&
+        // Storage URLs & paths (ensure no massive raw blobs in Firestore)
+        (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500000)) &&
+        (!('images' in data) || (data.images is list && data.images.size() <= 5)) &&
+        (!('imageUrls' in data) || (data.imageUrls is list && data.imageUrls.size() <= 5)) &&
+        (!('imagePaths' in data) || (data.imagePaths is list && data.imagePaths.size() <= 5)) &&
+        (!('imageCount' in data) || data.imageCount is number) &&
+        // Multi-category & AI analysis fields
+        (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+        (!('aiDetectedCategory' in data) || (data.aiDetectedCategory is string && data.aiDetectedCategory.size() <= 100)) &&
+        (!('userSelectedCategory' in data) || (data.userSelectedCategory is string && data.userSelectedCategory.size() <= 100)) &&
+        (!('detectedIssue' in data) || (data.detectedIssue is string && data.detectedIssue.size() <= 200)) &&
+        (!('aiGeneratedDescription' in data) || (data.aiGeneratedDescription is string && data.aiGeneratedDescription.size() <= 2000)) &&
+        (!('finalDescription' in data) || (data.finalDescription is string && data.finalDescription.size() <= 2000)) &&
+        (!('severity' in data) || isValidSeverity(data.severity)) &&
+        (!('aiSeverity' in data) || isValidSeverity(data.aiSeverity)) &&
+        (!('leakageCategory' in data) || (data.leakageCategory is string && data.leakageCategory.size() <= 100)) &&
+        (!('aiDescription' in data) || (data.aiDescription is string && data.aiDescription.size() <= 2000)) &&
+        (!('aiConfidence' in data) || data.aiConfidence is number) &&
+        (!('aiConfidenceEstimate' in data) || data.aiConfidenceEstimate is number) &&
+        (!('aiVerificationStatus' in data) || data.aiVerificationStatus is string) &&
+        (!('aiAnalysis' in data) || data.aiAnalysis is map) &&
+        (!('imageAnalysis' in data) || data.imageAnalysis is list) &&
+        (data.source == 'website' || data.source == 'whatsapp') &&
+        isValidStatus(data.status) &&
+        (!('district' in data) || data.district is string) &&
+        (!('taluka' in data) || data.taluka is string) &&
+        (!('latitude' in data) || data.latitude is number) &&
+        (!('longitude' in data) || data.longitude is number) &&
+        // Allow citizenUid and userId to be omitted, null, or string
+        (!('citizenUid' in data) || data.citizenUid == null || (data.citizenUid is string && data.citizenUid.size() <= 128)) &&
+        (!('userId' in data) || data.userId == null || (data.userId is string && data.userId.size() <= 128)) &&
+        (!('statusHistory' in data) || data.statusHistory is list) &&
+        (!('adminRemarks' in data) || (data.adminRemarks is string && data.adminRemarks.size() <= 1000)) &&
+        (!('village' in data) || data.village is string) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+        (!('citizenName' in data) || data.citizenName is string);
+    }
+
+    // USERS COLLECTION
+    match /users/{uid} {
+      allow get: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+
+      // Citizen creating their initial profile cannot make themselves admin
+      allow create: if isSignedIn() &&
+        request.auth.uid == uid &&
+        isValidUser(incoming()) &&
+        (incoming().role == 'citizen' || (isAdmin() && incoming().role == 'admin')) &&
+        (incoming().createdAt == request.time || incoming().createdAt is timestamp);
+
+      allow update: if isSignedIn() &&
+        isValidUser(incoming()) &&
+        (
+          isAdmin() ||
+          (request.auth.uid == uid && incoming().role == existing().role)
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    // COMPLAINTS COLLECTION
+    match /complaints/{complaintId} {
+      // Citizens can submit complaints (initial status must be Submitted or Pending)
+      allow create: if isValidId(complaintId) &&
+        isValidComplaint(incoming()) &&
+        incoming().complaintId == complaintId &&
+        (incoming().status == 'Submitted' || incoming().status == 'Pending') &&
+        (incoming().timestamp == request.time || incoming().createdAt == request.time);
+
+      // Anyone can get an individual complaint by ID (for public status tracking)
+      allow get: if isValidId(complaintId);
+
+      // List all complaints: authorized admins, or signed-in citizen querying their own UID
+      allow list: if isAdmin() ||
+        (isSignedIn() && (resource.data.citizenUid == request.auth.uid || resource.data.userId == request.auth.uid));
+
+      // Only authorized admins can update complaint status, admin remarks, or status history
+      allow update: if isAdmin() &&
+        incoming().complaintId == existing().complaintId &&
+        isValidStatus(incoming().status);
+
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document identifying citizens and admins.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "role": {
+          "type": "string",
+          "enum": ["citizen", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "email", "role", "createdAt"]
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "description": "Unified LeakWatch Goa civic issue grievance document covering Water Leakage, Potholes, Road Damage, Public Infrastructure, and Other Civic Issues.",
+      "type": "object",
+      "properties": {
+        "complaintId": {
+          "type": "string",
+          "pattern": "^LW-GOA-[0-9]{4}-[A-Z0-9]{6}$",
+          "maxLength": 30
+        },
+        "reportId": {
+          "type": "string",
+          "pattern": "^LW-GOA-[0-9]{4}-[A-Z0-9]{6}$",
+          "maxLength": 30
+        },
+        "userId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "citizenUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "contactNumber": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 25
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "personalAddress": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "landmark": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 300
+        },
+        "location": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 300
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "aiDetectedCategory": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "userSelectedCategory": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "detectedIssue": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "aiGeneratedDescription": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "finalDescription": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High", "Critical"]
+        },
+        "aiSeverity": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High", "Critical"]
+        },
+        "imageUrls": {
+          "type": "array"
+        },
+        "imagePaths": {
+          "type": "array"
+        },
+        "images": {
+          "type": "array"
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 500000
+        },
+        "leakageCategory": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "aiDescription": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "aiConfidence": {
+          "type": "number"
+        },
+        "aiConfidenceEstimate": {
+          "type": "number"
+        },
+        "aiVerificationStatus": {
+          "type": "string",
+          "enum": ["Verified", "Needs Admin Review", "Unrelated"]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["website", "whatsapp"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Submitted", "Under Review", "Assigned", "In Progress", "Resolved", "Rejected", "Pending"]
+        },
+        "adminRemarks": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "statusHistory": {
+          "type": "array"
+        },
+        "district": {
+          "type": "string"
+        },
+        "taluka": {
+          "type": "string"
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "complaintId",
+        "name",
+        "contactNumber",
+        "location",
+        "source",
+        "status",
+        "timestamp"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles identifying citizens and admins."
+    },
+    "/complaints/{complaintId}": {
+      "schema": {
+        "$ref": "#/entities/Complaint"
+      },
+      "description": "Unified civic issue complaints (Water Leakage, Potholes, Road Damage, Public Infrastructure, Other Civic Issues) with Gemini AI inspection and Firebase Storage references."
+    }
+  }
+}
